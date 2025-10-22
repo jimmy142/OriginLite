@@ -287,7 +287,18 @@ class Workspace(QMainWindow):
         # Plot
         self.menu_plot = self.menubar.addMenu("Plot")
         self.act_plot_line = QAction("Line", self, triggered=self._ws_plot_line)
-        self.menu_plot.addAction(self.act_plot_line)
+        self.act_plot_line_mk = QAction("Line + Symbols", self, triggered=self._ws_plot_line_markers)
+        self.act_plot_bar = QAction("Bar", self, triggered=self._ws_plot_bar)
+        self.act_plot_double_y = QAction("Double Y", self, triggered=self._ws_plot_double_y)
+        self.act_plot_pie = QAction("Pie", self, triggered=self._ws_plot_pie)
+        self.act_plot_scatter = QAction("Scatter", self, triggered=self._ws_plot_scatter)
+        self.act_plot_stem = QAction("Stem", self, triggered=self._ws_plot_stem)
+        self.act_plot_errorbar = QAction("Errorbar", self, triggered=self._ws_plot_errorbar)
+        self.act_plot_surface = QAction("3D Surface", self, triggered=self._ws_plot_surface)
+        for a in (self.act_plot_line, self.act_plot_line_mk, self.act_plot_bar,
+                  self.act_plot_double_y, self.act_plot_pie, self.act_plot_scatter,
+                  self.act_plot_stem, self.act_plot_errorbar, self.act_plot_surface):
+            self.menu_plot.addAction(a)
 
         self._refresh_action_states()
 
@@ -390,7 +401,10 @@ class Workspace(QMainWindow):
             self.act_ws_close, self.act_data_import, self.act_data_export,
             self.act_add_expr, self.act_add_empty_col, self.act_del_col, self.act_arith, self.act_stats,
             self.act_role_x, self.act_role_y, self.act_role_z, self.act_role_clear,
-            self.act_plot_line, self.act_proj_save
+            self.act_plot_line, self.act_plot_line_mk, self.act_plot_bar,
+            self.act_plot_double_y, self.act_plot_pie, self.act_plot_scatter,
+            self.act_plot_stem, self.act_plot_errorbar, self.act_plot_surface,
+            self.act_proj_save
         ):
             a.setEnabled(has_ws and not self._shutting_down)
 
@@ -654,7 +668,160 @@ class Workspace(QMainWindow):
         self._explorer_add_subwindow(sub)
 
         # Link plot to worksheet; it will update on any sheet_changed
-        win.set_source(ws, xj, yjs)
+        win.set_source(ws, xj, yjs, mode="line")
+
+    def _ws_plot_line_markers(self):
+        ws = self._active_ws()
+        if not ws:
+            return
+        xj = ws.x_col if ws.x_col is not None else (0 if ws.data.shape[1] >= 1 else None)
+        yjs = list(ws.y_cols) if ws.y_cols else ([1] if ws.data.shape[1] >= 2 else [])
+        if xj is None or not yjs:
+            QMessageBox.information(self, "Plot", "Set roles (X and Y) first via Roles menu.")
+            return
+
+        sub = QMdiSubWindow()
+        win = PlotWindow(self)
+        sub.setWidget(win); sub.setAttribute(Qt.WA_DeleteOnClose, True)
+        sub.setWindowTitle("Graph*")
+        self.mdi.addSubWindow(sub)
+        sub.resize(820, 520); sub.show()
+        self._explorer_add_subwindow(sub)
+
+        win.set_source(ws, xj, yjs, mode="line_markers")
+
+    def _ws_plot_bar(self):
+        ws = self._active_ws()
+        if not ws:
+            return
+        xj = ws.x_col if ws.x_col is not None else (0 if ws.data.shape[1] >= 1 else None)
+        yjs = list(ws.y_cols) if ws.y_cols else ([1] if ws.data.shape[1] >= 2 else [])
+        if xj is None or not yjs:
+            QMessageBox.information(self, "Plot", "Set roles (X and Y) first via Roles menu.")
+            return
+
+        sub = QMdiSubWindow()
+        win = PlotWindow(self)
+        sub.setWidget(win); sub.setAttribute(Qt.WA_DeleteOnClose, True)
+        sub.setWindowTitle("Graph*")
+        self.mdi.addSubWindow(sub)
+        sub.resize(820, 520); sub.show()
+        self._explorer_add_subwindow(sub)
+
+        win.set_source(ws, xj, yjs, mode="bar")
+
+    def _ws_plot_double_y(self):
+        ws = self._active_ws()
+        if not ws:
+            return
+        xj = ws.x_col if ws.x_col is not None else (0 if ws.data.shape[1] >= 1 else None)
+        yjs = list(ws.y_cols) if ws.y_cols else ([1] if ws.data.shape[1] >= 2 else [])
+        if xj is None or not yjs:
+            QMessageBox.information(self, "Plot", "Set roles (X and Y) first via Roles menu.")
+            return
+        if len(yjs) < 2:
+            QMessageBox.information(self, "Double Y", "Select at least two Y columns for left/right axes.")
+            return
+
+        sub = QMdiSubWindow()
+        win = PlotWindow(self)
+        sub.setWidget(win); sub.setAttribute(Qt.WA_DeleteOnClose, True)
+        sub.setWindowTitle("Graph*")
+        self.mdi.addSubWindow(sub)
+        sub.resize(820, 520); sub.show()
+        self._explorer_add_subwindow(sub)
+
+        win.set_source(ws, xj, yjs, mode="double_y")
+
+    def _ws_plot_pie(self):
+        ws = self._active_ws()
+        if not ws:
+            return
+        xj = ws.x_col if ws.x_col is not None else (0 if ws.data.shape[1] >= 1 else None)
+        yjs = list(ws.y_cols) if ws.y_cols else ([1] if ws.data.shape[1] >= 2 else [])
+        if xj is None or not yjs:
+            QMessageBox.information(self, "Plot", "Set roles (X and Y) first via Roles menu.")
+            return
+
+        sub = QMdiSubWindow()
+        win = PlotWindow(self)
+        sub.setWidget(win); sub.setAttribute(Qt.WA_DeleteOnClose, True)
+        sub.setWindowTitle("Graph*")
+        self.mdi.addSubWindow(sub)
+        sub.resize(820, 520); sub.show()
+        self._explorer_add_subwindow(sub)
+
+        # Only first Y used for pie
+        win.set_source(ws, xj, [yjs[0]], mode="pie")
+
+    def _ws_plot_scatter(self):
+        ws = self._active_ws()
+        if not ws:
+            return
+        xj = ws.x_col if ws.x_col is not None else (0 if ws.data.shape[1] >= 1 else None)
+        yjs = list(ws.y_cols) if ws.y_cols else ([1] if ws.data.shape[1] >= 2 else [])
+        if xj is None or not yjs:
+            QMessageBox.information(self, "Plot", "Set roles (X and Y) first via Roles menu.")
+            return
+
+        sub = QMdiSubWindow(); win = PlotWindow(self)
+        sub.setWidget(win); sub.setAttribute(Qt.WA_DeleteOnClose, True)
+        sub.setWindowTitle("Graph*"); self.mdi.addSubWindow(sub)
+        sub.resize(820, 520); sub.show(); self._explorer_add_subwindow(sub)
+        win.set_source(ws, xj, yjs, mode="scatter")
+
+    def _ws_plot_stem(self):
+        ws = self._active_ws()
+        if not ws:
+            return
+        xj = ws.x_col if ws.x_col is not None else (0 if ws.data.shape[1] >= 1 else None)
+        yjs = list(ws.y_cols) if ws.y_cols else ([1] if ws.data.shape[1] >= 2 else [])
+        if xj is None or not yjs:
+            QMessageBox.information(self, "Plot", "Set roles (X and Y) first via Roles menu.")
+            return
+
+        sub = QMdiSubWindow(); win = PlotWindow(self)
+        sub.setWidget(win); sub.setAttribute(Qt.WA_DeleteOnClose, True)
+        sub.setWindowTitle("Graph*"); self.mdi.addSubWindow(sub)
+        sub.resize(820, 520); sub.show(); self._explorer_add_subwindow(sub)
+        win.set_source(ws, xj, yjs, mode="stem")
+
+    def _ws_plot_errorbar(self):
+        ws = self._active_ws()
+        if not ws:
+            return
+        xj = ws.x_col if ws.x_col is not None else (0 if ws.data.shape[1] >= 1 else None)
+        yjs = list(ws.y_cols) if ws.y_cols else ([1, 2] if ws.data.shape[1] >= 3 else [])
+        if xj is None or not yjs:
+            QMessageBox.information(self, "Plot", "Set roles (X and Y) first via Roles menu. For error bars, select two Y columns: value and error.")
+            return
+
+        sub = QMdiSubWindow(); win = PlotWindow(self)
+        sub.setWidget(win); sub.setAttribute(Qt.WA_DeleteOnClose, True)
+        sub.setWindowTitle("Graph*"); self.mdi.addSubWindow(sub)
+        sub.resize(820, 520); sub.show(); self._explorer_add_subwindow(sub)
+        win.set_source(ws, xj, yjs, mode="errorbar")
+
+    def _ws_plot_surface(self):
+        ws = self._active_ws()
+        if not ws:
+            return
+        # Need X, at least one Y, and preferably Z; if no Z, use first two Ys as Y/Z
+        xj = ws.x_col if ws.x_col is not None else None
+        yjs = list(ws.y_cols)
+        if xj is None or (not yjs and ws.z_col is None):
+            QMessageBox.information(self, "3D Surface", "Set roles: X and Z (and optionally one Y) first.")
+            return
+
+        sub = QMdiSubWindow()
+        win = PlotWindow(self)
+        sub.setWidget(win); sub.setAttribute(Qt.WA_DeleteOnClose, True)
+        sub.setWindowTitle("Graph*")
+        self.mdi.addSubWindow(sub)
+        sub.resize(820, 520); sub.show()
+        self._explorer_add_subwindow(sub)
+
+        win.set_source(ws, xj, yjs if yjs else [0], mode="surface3d")
 
     # ---------- Save/Load project ----------
     # (unchanged below here)
